@@ -1,0 +1,229 @@
+<html>
+<!--https://github.com/SMUsamaShah/CanvasRecorder-->
+<script src="./CanvasRecorder.js"> </script>
+<script type="text/javascript">
+    var canvas, ctx, flag = false,
+        prevX = 0,
+        currX = 0,
+        prevY = 0,
+        currY = 0,
+        dot_flag = false;
+    var recorder;
+    var last_canvas;
+    var getDraw = {
+        update: () => {
+            this.check = setTimeout(() => {
+                console.log("Start adding");
+                clearInterval(this.check);
+                this.check = null;
+                addDraw();
+                
+            }, 800);
+        },
+        stop:() => {
+        if (this.check) {
+                clearInterval(this.check);
+            }
+            }
+    };
+    var x = "black",
+        y = 2;
+
+    function init() {
+        canvas = document.getElementById('can');
+        ctx = canvas.getContext("2d");
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        recorder = new CanvasRecorder(canvas);
+
+        w = canvas.width;
+        h = canvas.height;
+        last_canvas = canvas.toDataURL();
+        canvas.addEventListener("mousemove", function (e) {
+            findxy('move', e)
+        }, false);
+        canvas.addEventListener("mousedown", function (e) {
+            findxy('down', e)
+        }, false);
+        canvas.addEventListener("mouseup", function (e) {
+            findxy('up', e)
+        }, false);
+        canvas.addEventListener("mouseout", function (e) {
+            findxy('out', e)
+        }, false);
+    }
+
+    function color(obj) {
+        switch (obj.id) {
+            case "green":
+                x = "green";
+                break;
+            case "blue":
+                x = "blue";
+                break;
+            case "red":
+                x = "red";
+                break;
+            case "yellow":
+                x = "yellow";
+                break;
+            case "orange":
+                x = "orange";
+                break;
+            case "black":
+                x = "black";
+                break;
+            case "white":
+                x = "white";
+                break;
+        }
+        if (x == "white") y = 14;
+        else y = 2;
+
+    }
+
+    var draw = function(startX, startY, finshX, finshY) {
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(finshX, finshY);
+        ctx.strokeStyle = x;
+        ctx.lineWidth = y;
+        ctx.stroke();
+        ctx.closePath();
+    }
+    var drawPoint = function(startX=0, startY=0, finshX =0, finshY=0) {
+        ctx.beginPath();
+                ctx.fillStyle = x;
+                ctx.fillRect(finshX, finshY, 2, 2);
+                ctx.closePath();
+    }
+    var drawHistory = [];
+    function addDrawHistoy() {
+        let drawLog = {
+            moveTo: [prevX, prevY],
+            lineTo: [currX, currY],
+            draw: draw
+        };
+        drawHistory.push(drawLog);
+    }
+    function addpointHistoy() {
+        let drawLog = {
+            moveTo: [prevX, prevY],
+            lineTo: [currX, currY],
+            draw: drawPoint
+        };
+        drawHistory.push(drawLog);
+    }
+    function addDraw() {
+
+        let img = new window.Image();
+        img.addEventListener("load", function () {
+            ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            x = "red";
+            for (i = 0; i < drawHistory.length; i++) {
+                // remover el mas 1
+                drawHistory[i].draw(drawHistory[i].moveTo[0] + 1, drawHistory[i].moveTo[1] + 1, drawHistory[i].lineTo[0] + 1, drawHistory[i].lineTo[1] + 1);
+            }
+            drawHistory = [];
+            x = "black";
+        last_canvas = canvas.toDataURL();
+        });
+        img.setAttribute("src", last_canvas);
+
+
+    }
+
+    function erase() {
+        var m = confirm("Want to clear");
+        if (m) {
+            ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+            last_canvas = canvas.toDataURL();
+ 
+        }
+
+    }
+
+    function save() {
+        document.getElementById("canvasimg").style.border = "2px solid";
+        //var dataURL = canvas.toDataURL();
+        var dataURL = canvas.toDataURL("image/jpeg");
+        
+        document.getElementById("canvasimg").src = dataURL;
+        document.getElementById("canvasimg").style.display = "inline";
+    }
+
+    function findxy(res, e) {
+
+        if (res == 'down') {
+            getDraw.stop();
+            prevX = currX;
+            prevY = currY;
+            currX = e.clientX - canvas.offsetLeft;
+            currY = e.clientY - canvas.offsetTop;
+
+            flag = true;
+            // Dot when click
+            dot_flag = true;
+            if (dot_flag) {
+                ctx.beginPath();
+                ctx.fillStyle = x;
+                ctx.fillRect(currX, currY, 2, 2);
+                ctx.closePath();
+                dot_flag = true;
+                addpointHistoy();
+
+            }
+        }
+        if (res == 'up' || res == "out") {
+            flag = false;
+            getDraw.update();
+
+        }
+        if (res == 'move') {
+            if (flag) {
+                prevX = currX;
+                prevY = currY;
+                currX = e.clientX - canvas.offsetLeft;
+                currY = e.clientY - canvas.offsetTop;
+                draw(prevX, prevY, currX, currY);
+                addDrawHistoy();
+
+            }
+        }
+    }
+</script>
+
+<body onload="init()">
+    <canvas id="can" width="400" height="400" style="position:absolute;top:10%;left:10%;border:2px solid;"></canvas>
+    <div style="position:absolute;top:10%;left:63%;">Choose Color</div>
+    <div style="position:absolute;top:15%;left:65%;width:10px;height:10px;background:green;" id="green"
+        onclick="color(this)"></div>
+    <div style="position:absolute;top:15%;left:66%;width:10px;height:10px;background:blue;" id="blue"
+        onclick="color(this)"></div>
+    <div style="position:absolute;top:15%;left:67%;width:10px;height:10px;background:red;" id="red"
+        onclick="color(this)"></div>
+    <div style="position:absolute;top:18%;left:65%;width:10px;height:10px;background:yellow;" id="yellow"
+        onclick="color(this)"></div>
+    <div style="position:absolute;top:18%;left:66%;width:10px;height:10px;background:orange;" id="orange"
+        onclick="color(this)"></div>
+    <div style="position:absolute;top:18%;left:67%;width:10px;height:10px;background:black;" id="black"
+        onclick="color(this)"></div>
+    <div style="position:absolute;top:20%;left:63%;">Eraser</div>
+    <div style="position:absolute;top:25%;left:65%;width:15px;height:15px;background:white;border:2px solid;" id="white"
+        onclick="color(this)"></div>
+    <img id="canvasimg" style="position:absolute;top:10%;left:52%;" style="display:none;">
+    <input type="button" value="save" id="btn" size="30" onclick="save()" style="position:absolute;top:1%;left:10%;">
+    <input type="button" value="clear" id="clr" size="23" onclick="erase()" style="position:absolute;top:1%;left:15%;">
+    <input type="button" value="Start" id="clr" size="23" onclick="recorder.start();"
+        style="position:absolute;top:1%;left:20%;">
+    <input type="button" value="Stop" id="clr" size="23" onclick="recorder.stop()"
+        style="position:absolute;top:1%;left:25%;">
+    <input type="button" value="Save" id="clr" size="23" onclick="recorder.save()"
+        style="position:absolute;top:1%;left:30%;">
+
+
+</body>
+
+</html>
