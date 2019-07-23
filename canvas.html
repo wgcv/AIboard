@@ -1,6 +1,13 @@
 <html>
+<head>
+  <!-- Import TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.1.2/dist/tf.min.js"></script>
+  <!-- Import tfjs-vis -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script>
+
+
 <!--https://github.com/SMUsamaShah/CanvasRecorder-->
-<script src="./CanvasRecorder.js"> </script>
+<script src="js/CanvasRecorder.js"> </script>
 <script type="text/javascript">
     var canvas, ctx, flag = false,
         prevX = 0,
@@ -10,13 +17,17 @@
         dot_flag = false;
     var recorder;
     var last_canvas;
+    var listLetter =  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
     var getDraw = {
         update: () => {
             this.check = setTimeout(() => {
-                console.log("Start adding");
                 clearInterval(this.check);
                 this.check = null;
-                addDraw();
+                if(drawHistory.length>0){
+                    addDraw();
+                }else{
+                    this.stop()
+                }
                 
             }, 800);
         },
@@ -30,15 +41,21 @@
         y = 2;
 
     function init() {
+        
         canvas = document.getElementById('can');
         ctx = canvas.getContext("2d");
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "30px Arial";
+
         recorder = new CanvasRecorder(canvas);
 
         w = canvas.width;
         h = canvas.height;
         last_canvas = canvas.toDataURL();
+
+
+
         canvas.addEventListener("mousemove", function (e) {
             findxy('move', e)
         }, false);
@@ -51,6 +68,9 @@
         canvas.addEventListener("mouseout", function (e) {
             findxy('out', e)
         }, false);
+
+      
+
     }
 
     function color(obj) {
@@ -82,7 +102,7 @@
 
     }
 
-    var draw = function(startX, startY, finshX, finshY) {
+    var draw = function(ctx, startX, startY, finshX, finshY) {
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(finshX, finshY);
@@ -91,7 +111,7 @@
         ctx.stroke();
         ctx.closePath();
     }
-    var drawPoint = function(startX=0, startY=0, finshX =0, finshY=0) {
+    var drawPoint = function(ctx, startX=0, startY=0, finshX =0, finshY=0) {
         ctx.beginPath();
                 ctx.fillStyle = x;
                 ctx.fillRect(finshX, finshY, 2, 2);
@@ -108,7 +128,7 @@
     }
     function addpointHistoy() {
         let drawLog = {
-            moveTo: [prevX, prevY],
+            moveTo: [currX, currY],
             lineTo: [currX, currY],
             draw: drawPoint
         };
@@ -120,14 +140,89 @@
         img.addEventListener("load", function () {
             ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0);
-            x = "red";
-            for (i = 0; i < drawHistory.length; i++) {
-                // remover el mas 1
-                drawHistory[i].draw(drawHistory[i].moveTo[0] + 1, drawHistory[i].moveTo[1] + 1, drawHistory[i].lineTo[0] + 1, drawHistory[i].lineTo[1] + 1);
-            }
-            drawHistory = [];
+            feature = document.getElementById('feature');
+            feature_ctx = feature.getContext("2d");
+            feature_ctx.fillStyle = "black";
+            feature_ctx.fillRect(0, 0, feature.width, feature.height);
+
             x = "black";
+            maxX = 0;
+            maxY =0;
+            minX = 100000;
+            minY =100000;
+
+            for( i= 0; i < drawHistory.length; i++){
+                if(drawHistory[i].moveTo[0]>maxX){
+                    maxX = drawHistory[i].moveTo[0];
+                }
+                if(drawHistory[i].moveTo[1]>maxY){
+                    maxY = drawHistory[i].moveTo[1];
+                }
+                if(drawHistory[i].lineTo[0]>maxX){
+                    maxX = drawHistory[i].lineTo[0];
+                }
+                if(drawHistory[i].lineTo[1]>maxY){
+                    maxY = drawHistory[i].lineTo[1];
+                }
+                
+                if(drawHistory[i].moveTo[0]<minX){
+                    minX = drawHistory[i].moveTo[0];
+                }
+                if(drawHistory[i].moveTo[1]<minY){
+                    minY = drawHistory[i].moveTo[1];
+                }
+                if(drawHistory[i].lineTo[0]<minX){
+                    minX = drawHistory[i].lineTo[0];
+                }
+                if(drawHistory[i].lineTo[1]<minY){
+                    minY = drawHistory[i].lineTo[1];
+                }
+
+            }
+            for (i = 0; i < drawHistory.length; i++) {
+                x = "white";
+                let margin = (maxX-minX)*0.75;
+                if(margin < 3){
+                    margin = 5;
+                }
+                drawHistory[i].draw(feature_ctx, 
+                    (drawHistory[i].moveTo[0] - minX+margin/2)*(28/(maxX-minX+margin)), 
+                    (drawHistory[i].moveTo[1] - minY+margin/2)*(28/(maxY-minY+margin)), 
+                    (drawHistory[i].lineTo[0] - minX+margin/2)*(28/(maxX-minX+margin)), 
+                    (drawHistory[i].lineTo[1] - minY+margin/2)*(28/(maxY-minY+margin)));
+            }
+
+        var feature_image = feature_ctx.getImageData(0, 0, feature.height, feature.width);
+        img_tensor = tf.browser.fromPixels(feature_image, numChannels=1);
+        img_tensor = tf.div(img_tensor, 255);
+
+        let prediction = model.predict(img_tensor.expandDims(axis=0)).dataSync()
+            // if(Math.max(...prediction) > 0.33){
+                if(Math.max(...prediction) > 0.31){
+
+                prediction = listLetter[prediction.indexOf(Math.max(...prediction))];
+                if(isNaN(prediction)){
+                    ctx.fillText(prediction.toUpperCase(),  minX, maxY);
+
+                }
+                else{
+                    ctx.fillText(prediction,  minX, maxY);
+
+                }
+            }else{
+                for (i = 0; i < drawHistory.length; i++) {
+                x = "black";
+
+                drawHistory[i].draw(ctx, drawHistory[i].moveTo[0], drawHistory[i].moveTo[1], drawHistory[i].lineTo[0], drawHistory[i].lineTo[1]);
+                
+                }
+            }
+
+        
+        drawHistory = [];
+        x = "black";
         last_canvas = canvas.toDataURL();
+
         });
         img.setAttribute("src", last_canvas);
 
@@ -178,7 +273,7 @@
         }
         if (res == 'up' || res == "out") {
             flag = false;
-            getDraw.update();
+                getDraw.update();
 
         }
         if (res == 'move') {
@@ -187,16 +282,20 @@
                 prevY = currY;
                 currX = e.clientX - canvas.offsetLeft;
                 currY = e.clientY - canvas.offsetTop;
-                draw(prevX, prevY, currX, currY);
+                draw(ctx, prevX, prevY, currX, currY);
                 addDrawHistoy();
 
             }
         }
     }
 </script>
+<meta name="viewport" content= "width=device-width, initial-scale=1.0"> 
 
+</head>
 <body onload="init()">
     <canvas id="can" width="400" height="400" style="position:absolute;top:10%;left:10%;border:2px solid;"></canvas>
+    <canvas id="feature" width="28" height="28" style="position:absolute;top:90%;left:80%"></canvas>
+
     <div style="position:absolute;top:10%;left:63%;">Choose Color</div>
     <div style="position:absolute;top:15%;left:65%;width:10px;height:10px;background:green;" id="green"
         onclick="color(this)"></div>
@@ -222,8 +321,16 @@
         style="position:absolute;top:1%;left:25%;">
     <input type="button" value="Save" id="clr" size="23" onclick="recorder.save()"
         style="position:absolute;top:1%;left:30%;">
+        <img id="img" src="r1.jpg">
 
+<script >
+var model;
+(async () => {
+    model = await tf.loadLayersModel('model/model.json');
 
+})();
+
+</script>
 </body>
 
 </html>
